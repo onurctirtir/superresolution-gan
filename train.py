@@ -92,7 +92,7 @@ def loss_dcgan(x, gen):
     d_real_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_d, labels=tf.ones_like(real_d)))
     d_gen_cost  = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.zeros_like(fake_d)))
      
-    g_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.ones_like(fake_d))) * 0.01 + tf.reduce_mean(tf.abs(tf.subtract(gen, x)))
+    g_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.ones_like(fake_d))) * 0.1 + tf.reduce_mean(tf.abs(tf.subtract(gen, x)))
 
     d_cost = d_real_cost + d_gen_cost
     
