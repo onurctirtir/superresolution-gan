@@ -35,3 +35,10 @@ python test.py
 
 Test script will restore the model from 'model/' and run on the images residing in 'test_rgb.npy'.
 Then it will create test outputs in 'test_imgs/'. 
+
+# Example test outputs
+
+Left to right, test output images' format is like this:
+ - after rough super-resolution with scipy.misc.imresize(img, size=(128, 128, 3)),
+ - after super-superresolution with superresolution-gan,
+ - original 128 x 128 x 3 image
