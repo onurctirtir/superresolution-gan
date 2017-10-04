@@ -77,7 +77,7 @@ def discriminator_dcgan(x, is_training=True, reuse=False):
         layer4 = conv2d(layer3, output_dim=1, kernel=3, stride=2, name='d_layer4')
         layer4 = batch_norm(layer4, is_training=is_training, name='d_layer4_bn')
         layer4 = lrelu(layer4)
-        #32 x 32 x 1
+        #32 x 32 x 3
 
         layer5 = tf.reshape(layer4, [-1, 32 * 32 * 1])
         layer5 = linear(layer5, output_size=1, name='d_layer5_lin')
@@ -92,7 +92,8 @@ def loss_dcgan(x, gen):
     d_real_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_d, labels=tf.ones_like(real_d)))
     d_gen_cost  = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.zeros_like(fake_d)))
      
-    g_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.ones_like(fake_d))) * 0.1 + tf.reduce_mean(tf.abs(tf.subtract(gen, x)))
+    g_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.ones_like(fake_d))) * 0.1 + \
+            tf.reduce_mean(tf.abs(tf.subtract(gen, x)))
 
     d_cost = d_real_cost + d_gen_cost
     
