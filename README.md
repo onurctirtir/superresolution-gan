@@ -13,7 +13,8 @@ resized them roughly to 128 x 128 x 3 images. Randomly splitted 500 of them for 
 
 # Downloading
 
-Dataset I've used for train and test can be found at: https://www.dropbox.com/sh/on18ekittp46n9f/AAAmezABdsGv7RphhHbK6ljHa?dl=0
+Dataset I've used for train and test can be found at: 
+https://www.dropbox.com/sh/on18ekittp46n9f/AAAmezABdsGv7RphhHbK6ljHa?dl=0
 
 Download dataset and put 'data/' into the same directory with train and test scripts.
 
@@ -21,17 +22,17 @@ Download dataset and put 'data/' into the same directory with train and test scr
 
 After setting parameters like 'epochs' in 'train.py',first train the model:
 
-'''
+```
 python train.py
-'''
+```
 
 This script will also save trained model under the 'model/'  directory.
 
 Then test it:
 
-'''
+```
 python test.py
-'''
+```
 
 Test script will restore the model from 'model/' and run on the images residing in 'test_rgb.npy'.
 Then it will create test outputs in 'test_imgs/'. 
