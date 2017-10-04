@@ -3,7 +3,7 @@ A DCGAN implementation in Tensorflow for super-resolution of 64 x 64 RGB images 
 
 # Notes on dataset
 
-Downloaded the car dataset from http://ai.stanford.edu/~jkrause/cars/car_dataset.html.
+Downloaded the car dataset from ![ai.stanford.edu](http://ai.stanford.edu/~jkrause/cars/car_dataset.html).
 
 Reason why I preferred this dataset is to maintain the coherence between images.
 
@@ -13,8 +13,7 @@ resized them roughly to 128 x 128 x 3 images. Randomly splitted 500 of them for 
 
 # Downloading
 
-Dataset I've used for train and test can be found at: 
-https://www.dropbox.com/sh/on18ekittp46n9f/AAAmezABdsGv7RphhHbK6ljHa?dl=0
+Dataset I've used for train and test can be found at: ![dropbox](https://www.dropbox.com/sh/on18ekittp46n9f/AAAmezABdsGv7RphhHbK6ljHa?dl=0)
 
 Download dataset and put 'data/' into the same directory with train and test scripts.
 
