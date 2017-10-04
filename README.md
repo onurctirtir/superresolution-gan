@@ -43,4 +43,11 @@ Left to right, test output images' format is like this:
  - after super-superresolution with superresolution-gan,
  - original 128 x 128 x 3 image
  
- ![image1](https://github.com/onurctirtir/superresolution-gan/tree/master/example_test_imgs/img0.png)
+ !(example_test_imgs/img0.png)
+ !(example_test_imgs/img1.png)
+ !(example_test_imgs/img2.png)
+ !(example_test_imgs/img3.png)
+ !(example_test_imgs/img4.png)
+ !(example_test_imgs/img5.png)
+ !(example_test_imgs/img6.png)
+ !(example_test_imgs/img7.png)
