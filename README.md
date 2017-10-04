@@ -42,3 +42,5 @@ Left to right, test output images' format is like this:
  - after rough super-resolution with scipy.misc.imresize(img, size=(128, 128, 3)),
  - after super-superresolution with superresolution-gan,
  - original 128 x 128 x 3 image
+ 
+ ![image1](https://github.com/onurctirtir/superresolution-gan/tree/master/example_test_imgs/img0.png)
