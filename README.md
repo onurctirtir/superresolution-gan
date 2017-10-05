@@ -7,8 +7,15 @@ Downloaded the car dataset from [ai.stanford.edu](http://ai.stanford.edu/~jkraus
 
 Reason why I preferred this dataset is to maintain the coherence between images.
 
-After cropping images according to bounding boxes, eliminated the ones with height < 128 or width < 128 and 
-resized them roughly to 128 x 128 x 3 images. Randomly splitted 500 of them for test,
+After cropping images according to bounding boxes, eliminated the ones with height < 128 or width < 128, resized them roughly to 128 x 128 x 3 images and put them into 'imgs/'
+
+Then run the script 'imgs2npys.py':
+
+```
+python imgs2npys.py
+```
+
+So, splitting randomly 500 of them for test, 
 4D '.npy's with shape [size, 128, 128, 3] were generated under 'data/'.
 
 # Downloading
