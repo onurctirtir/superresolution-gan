@@ -2,79 +2,98 @@
 from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-# File operations
-from os import system as os_sys
-from os import path as os_path
+from numpy import load, concatenate
+from os import makedirs
+from scipy.misc import imsave, imresize
+from time import strftime
 
-# Export images
-from scipy.misc import imsave as sci_save
+from commons import generator
+from commons import costs_and_vars
 
-# Derive 64 x 64 x 3 images
-from scipy.misc import imresize as sci_resize
-
-# Load images
-from numpy import load as np_load
-
-# Concatenate images over their channel axes
-from numpy import concatenate as np_concat
-
-# Import common operations for neural net.
-from commons import *
-
-# Convert lists into numpy arrays
-from numpy import array as np_array
+from commons import BatchGenerator
 
 import tensorflow as tf
+import argparse
 
-test_out_path  = 'test_imgs/'
+parser = argparse.ArgumentParser()
+add_arg = parser.add_argument
 
-test_rgb_path  = 'data/test_rgb.npy'
+add_arg('--model'     , default='default'      , type=str, \
+        help='Name of the trained model to use.')
+add_arg('--batch-size', default=50             , type=int, \
+        help='Number of images provided at each test iteration.')
+add_arg('--npy-path'  , default='data/test.npy', type=str, \
+        help='Path to numpy array containing test set images.')
 
-test_set_size   = 500
-test_batch_size = 50
+args = parser.parse_args()
 
-rgb_x = tf.placeholder(tf.float32, [test_batch_size, 128, 128, 3])
-sml_x = tf.placeholder(tf.float32, [test_batch_size,  64,  64, 3])
+class Tester:
+    def __init__(self): 
+        print('Importing test set ...')
+        self.dataset = load(file=args.npy_path, allow_pickle=False)
+        print('Done.')
 
-print('Importing test set ...')
-test_rgb = np_load(file=test_rgb_path, allow_pickle=False)
-print('Test set imported')
+        self.batch_size    = args.batch_size
+        self.model         = args.model
+        self.dataset_size  = self.dataset.shape[0]
+        self.out_path      = '/'.join(['test_out_imgs', strftime('%Y%m%d-%H%M%S']))
 
-init = tf.global_variables_initializer()
+    def test(self):
+        rgb_x   = tf.placeholder(tf.float32, [None, 128, 128, 3])
+        sml_x   = tf.placeholder(tf.float32, [None,  64,  64, 3])
+        gener_x = generator(sml_x, is_training=False, reuse=False)
 
-generated = conv_net(sml_x, is_training=True, reuse=False)
+        real_d  = discriminator(big_x, is_training=False, reuse=False)
+        gener_d = discriminator(gener_x, is_training=False, reuse=True)
 
-with tf.Session() as sess:
-    sess.run(init)
+        g_cost, d_cost = costs_and_vars(big_x, gener_x, real_d, gener_d, is_training=False)
 
-    saver = tf.train.Saver()
+        init = tf.global_variables_initializer()
 
-    saver.restore(sess, model_path + model_name)
+        with tf.Session() as sess:
+            sess.run(init)
 
-    print('Model has been restored from the directory: %s' % model_path)
+            saver = tf.train.Saver()
 
-    if os_path.isdir(test_out_path):
-        print('Clean old test outputs ...')
-        os_sys('rm ' + test_out_path + '/*')
+            try:
+                saver.restore(sess, '/'.join(['models', self.model, self.model]))
+            except:
+                print('Model coult not be restored. Exiting.')
+                exit()
 
-    else:
-        os_sys('mkdir ' + test_out_path)
-    
-    print('Saving test results ...')
+            makedirs(self.out_path)
 
-    for batch in range(int(test_set_size / test_batch_size)):
-        start = batch * test_batch_size
-        end   = start + test_batch_size
+            print('Saving test results ...')
 
-        _test_rgb = test_rgb[start:end] / 255.0
-        _test_sml = np_array([sci_resize(img, size=(64, 64, 3)) for img in _test_rgb])
+            start = 0
 
-        regenerated = sess.run(generated, feed_dict={sml_x: _test_sml})
+            for batch in BatchGenerator(self.batch_size, self.dataset_size):
+                batch_big = self.dataset[batch] / 255.0
+                batch_sml = array([imresize(img, size=(64, 64, 3)) \
+                        for img in batch_big])
 
-        images = np_concat(
-            (np_array([sci_resize(img, size=(128, 128, 3)) / 255.0 for img in _test_sml]),
-                regenerated, _test_rgb), 2)
+                superres_imgs = sess.run(gener_x, feed_dict={sml_x: batch_sml})
 
-        for idx, image in enumerate(images):
-            sci_save(test_out_path + 'img' + str(start+idx) + '.png', image)
+                gc, dc  = sess.run([g_cost, d_cost], \
+                        feed_dict={big_x : batch_big, sml_x : batch_sml})
+
+                images = concatenate( \
+                    ( \
+                        array([imresize(img, size=(128, 128, 3)) / 255.0 \
+                                for img in batch_sml]), \
+                        superres_imgs,
+                        batch_big \
+                    ), 2)
+
+                for idx, image in enumerate(images):
+                    imsave('%s/%d.png' % (self.out_path, start+idx), image)
+
+                start += self.batch_size
+
+                print('%d/%d saved successfully: Generative cost=%.9f, Discriminative cost=%.9f' % \
+                        (min(self.dataset_size - start, self.batch_size), self.dataet_size, gc, dc))
+
+if __name__ == '__main__':
+    tester = Tester()
+    tester.test()
 

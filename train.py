@@ -2,142 +2,128 @@
 from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-# Load images
-from numpy import load as np_load
+from numpy import array, load
+from os import makedirs
+from os.path import exists
+from scipy.misc import imresize
 
-# Generate an 'index list' to shuffle data
-from numpy.random import permutation as np_shuffle
+from commons import generator
+from commons import costs_and_vars
 
-# Derive 64 x 64 x 3 images
-from scipy.misc import imresize as sci_resize
+from commons import BatchGenerator
 
-# Convert lists to numpy arrays
-from numpy import array as np_array
-
-# Import common operations for neural net.
-from commons import *
-
-# Import tensorflow
 import tensorflow as tf
+import argparse
 
-alpha_gen       = 0.0001
-alpha_dis       = 0.0001
-training_epochs = 5
-batch_size      = 16
-display_step    = 10
+parser = argparse.ArgumentParser()
+add_arg = parser.add_argument
 
-train_rgb_path = 'data/train_rgb.npy'
+add_arg('--model'     , default='default'       , type=str  , \
+        help='Name of the model to be trained.')
+add_arg('--batch-size', default=16              , type=int  , \
+        help='Number of images provided at each training iteration.')
+add_arg('--lr-gen'    , default=1e-4            , type=float, \
+        help='Learning rate of generative network.')
+add_arg('--lr-dis'    , default=1e-4            , type=float, \
+        help='Learning rate of discriminative network.')
+add_arg('--epochs'    , default=5               , type=int  , \
+        help='Number of training epochs.')
+add_arg('--disp-every', default=10              , type=int  , \
+        help='Display costs per each disp_every iterations.')
+add_arg('--save-every', default=None            , type=int  , \
+        help='Save model per each save_every epochs.')
+add_arg('--npy-path'  , default='data/train.npy', type=str  , \
+        help='Path to numpy array containing training set images.')
+add_arg('--continues' , default=0               , type=int  , \
+        help='If set to 1, continue to train the specified model. \
+        If set to 0, a new model with specified name will be generated.')
 
-training_set_size = 13728
+args = parser.parse_args()
 
-rgb_x = tf.placeholder(tf.float32, [batch_size, 128, 128, 3])
-sml_x = tf.placeholder(tf.float32, [batch_size,  64,  64, 3])
+class Trainer:
+    def __init__(self): 
+        print('Importing training set ...')
+        self.dataset = load(file=args.npy_path, allow_pickle=False)
+        print('Done.')
 
-print('Importing training set ...')
-train_rgb = np_load(file=train_rgb_path, allow_pickle=False)
-print('Training set imported')
+        self.batch_size      = args.batch_size
+        self.training_epochs = args.epochs
+        self.model           = args.model
+        self.display_step    = args.disp_every
+        self.save_step       = args.save_every
+        self.lr_gen          = args.lr_gen
+        self.lr_dis          = args.lr_dis
+        self.continues       = args.continues
+        self.dataset_size    = self.dataset.shape[0]
 
-def next_batch(batch_size):
+    def train(self):
+        big_x   = tf.placeholder(tf.float32, [None, 128, 128, 3])
+        sml_x   = tf.placeholder(tf.float32, [None,  64,  64, 3])
+        gener_x = generator(sml_x, is_training=True, reuse=False)
 
-    if not hasattr(next_batch, 'last_image'):
-        next_batch.last_image = 0
+        real_d  = discriminator(big_x, is_training=True, reuse=False)
+        gener_d = discriminator(gener_x, is_training=True, reuse=True)
 
-    if not hasattr(next_batch, 'idxs'):
-        next_batch.idxs = np_shuffle(training_set_size)
-
-    if next_batch.last_image + batch_size > training_set_size:
-        next_batch.idxs = np_shuffle(training_set_size)
-        next_batch.last_image = 0
-
-    start = next_batch.last_image
-    next_batch.last_image += batch_size
-
-    return train_rgb[next_batch.idxs[start: next_batch.last_image]] / 255.0
-
-def discriminator_dcgan(x, is_training=True, reuse=False):
-    with tf.variable_scope("discriminator") as scope:
-        if reuse:
-            scope.reuse_variables()
- 
-        layer1 = conv2d(x, output_dim=64, kernel=7, stride=1, name='d_layer1')
-        layer1 = batch_norm(layer1, is_training=is_training, name='d_layer1_bn')
-        layer1 = lrelu(layer1)
-        #128 x 128 x 64
+        g_cost, d_cost, g_vars, d_vars = \
+                costs_and_vars(big_x, gener_x, real_d, gener_d, is_training=True)
         
-        layer2 = conv2d(layer1, output_dim=64, kernel=7, stride=2, name='d_layer2')
-        layer2 = batch_norm(layer2, is_training=is_training, name='d_layer2_bn')
-        layer2 = lrelu(layer2)
-        #64 x 64 x 64
+        g_optimizer = tf.train.AdamOptimizer(learning_rate=self.lr_gen).\
+                minimize(g_cost, var_list=g_vars)
+        d_optimizer = tf.train.AdamOptimizer(learning_rate=self.lr_dis).\
+                minimize(d_cost, var_list=d_vars)
+        
+        init = tf.global_variables_initializer()
+
+        with tf.Session() as sess:
+            sess.run(init)
+
+            saver = tf.train.Saver()
+
+            if self.continues:
+                try:
+                    saver.restore(sess, '/'.join(['models', self.model, self.model]))
+                except:
+                    print('Model coult not be restored. Exiting.')
+                    exit()
+
+            if not exists('models'):
+                makedirs('models')
+
+            passed_iters = 0
+
+            for epoch in range(1, self.training_epochs+1):
+                print('Epoch:', str(epoch))
+                
+                for batch in BatchGenerator(self.batch_size, self.dataset_size):
+                    batch_big = self.dataset[batch] / 255.0
+                    batch_sml = array([imresize(img, size=(64, 64, 3)) \
+                            for img in batch_big])                        
             
-        layer3 = conv2d(layer2, output_dim=32, kernel=3, stride=2, name='d_layer3')
-        layer3 = batch_norm(layer3, is_training=is_training, name='d_layer3_bn')
-        layer3 = lrelu(layer3)
-        #32 x 32 x 32
+                    _, gc, dc  = sess.run([g_optimizer, g_cost, d_cost], \
+                            feed_dict={big_x : batch_big, sml_x : batch_sml})
+                    sess.run([d_optimizer], \
+                            feed_dict={big_x : batch_big, sml_x : batch_sml})                        
+                    
+                    passed_iters += 1
 
-        layer4 = conv2d(layer3, output_dim=1, kernel=3, stride=2, name='d_layer4')
-        layer4 = batch_norm(layer4, is_training=is_training, name='d_layer4_bn')
-        layer4 = lrelu(layer4)
-        #32 x 32 x 3
+                    if passed_iters % self.display_step == 0:
+                        print('Passed iterations=%d, Generative cost=%.9f, Discriminative cost=%.9f' %\
+                                (passed_iters, gc, dc))
 
-        layer5 = tf.reshape(layer4, [-1, 32 * 32 * 1])
-        layer5 = linear(layer5, output_size=1, name='d_layer5_lin')
-    
-    return layer5
+                if self.save_step and epoch % self.save_step == 0:
+                    saver.save(sess, '/'.join(['models', self.model, self.model]))
 
-def loss_dcgan(x, gen):
+                    print('Model \'%s\' saved in: \'%s/\'' \
+                            % (self.model, '/'.join(['models', self.model])))
 
-    real_d = discriminator_dcgan(x, is_training=True, reuse=False)
-    fake_d = discriminator_dcgan(gen, is_training=True, reuse=True)
-    
-    d_real_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_d, labels=tf.ones_like(real_d)))
-    d_gen_cost  = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.zeros_like(fake_d)))
-     
-    g_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_d, labels=tf.ones_like(fake_d))) * 0.1 + \
-            tf.reduce_mean(tf.abs(tf.subtract(gen, x)))
+            print('Optimization finished.')
 
-    d_cost = d_real_cost + d_gen_cost
-    
-    t_vars = tf.trainable_variables()
+            saver.save(sess, '/'.join(['models', self.model, self.model]))
+            
+            print('Model \'%s\' saved in: \'%s/\'' \
+                    % (self.model, '/'.join(['models', self.model])))
 
-    d_vars = [var for var in t_vars if 'd_' in var.name]
-    g_vars = [var for var in t_vars if 'g_' in var.name]
-    
-    return g_cost, d_cost, g_vars, d_vars
+if __name__ == '__main__':
+    trainer = Trainer()
+    trainer.train()
 
-generated = conv_net(sml_x, is_training=True, reuse=False)
-
-g_cost, d_cost, g_vars, d_vars = loss_dcgan(rgb_x, generated)
-
-optimizerg = tf.train.AdamOptimizer(learning_rate=alpha_gen).minimize(g_cost, var_list=g_vars)
-optimizerd = tf.train.AdamOptimizer(learning_rate=alpha_dis).minimize(d_cost, var_list=d_vars)
-
-init = tf.global_variables_initializer()
-
-with tf.Session() as sess:
-    sess.run(init)
-    
-    step = 1
-
-    while step * batch_size < training_epochs * training_set_size:
-        batch_rgb = next_batch(batch_size)
-        batch_sml = np_array([sci_resize(img, size=(64, 64, 3)) \
-                for img in batch_rgb])
-        
-        _, gc, dc  = sess.run([optimizerg, g_cost, d_cost], \
-                feed_dict={rgb_x : batch_rgb, sml_x : batch_sml})
-      
-        sess.run([optimizerd], feed_dict={rgb_x : batch_rgb, sml_x : batch_sml})
-
-        if step % display_step == 0:
-            print('Iter', str(step*batch_size), 'gc: {:.09}'.format(gc), \
-                    'dc: {:.09}'.format(dc))
-        
-        step += 1
-
-    print('Optimization finished.')
-
-    saver = tf.train.Saver()    
-    saver.save(sess, model_path + model_name)
-    
-    print("Model saved into directory: %s" % model_path)
-    

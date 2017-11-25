@@ -1,57 +1,67 @@
-# Put this script in the directory containing 'imgs/'
-
-# Import images
 from glob import glob
 from skimage.io import imread
-
-# Shuffle the array of file names
 from random import shuffle
-
-# File operations
 from os.path import exists
 from os import makedirs
+from shutil import rmtree
 
+import argparse
 import numpy as np
 
-path2npys = 'data/'
+parser = argparse.ArgumentParser()
+add_arg = parser.add_argument
 
-train_rgb_path = path2npys + 'train_rgb.npy'
-test_rgb_path  = path2npys + 'test_rgb.npy'
+add_arg('--input', default='imgs/', type=str,     \
+        help='Output dir set in \'prepare.py\'.')
+add_arg('--output', default='data/', type=str,    \
+        help='npy\'s will be stored here.')
+add_arg('--test-set-size', default=500, type=int, \
+        help='Number of images to be reserved for test set.')
 
-imgs_path = 'imgs/*'
+args = parser.parse_args()
 
-training_set_size = 13728
-test_set_size     = 500
+if __name__ == '__main__':
+    train_path = args.output + 'train.npy'
+    test_path  = args.output + 'test.npy'
 
-if not exists(path2npys):
-    makedirs(path2npys)
+    imgs_path = 'imgs/*'
 
-files = glob(imgs_path)
+    files = glob(args.input + '/*.jpg')
 
-shuffle(files)
+    dataset_size = len(files)
+    training_set_size = dataset_size - args.test_set_size
 
-train_imgs = np.empty(shape=(training_set_size, 128, 128, 3), \
-        dtype=np.uint8)
+    assert (dataset_size > 0)                 , 'Dataset is empty.'
+    assert (args.test_set_size > 0)           , 'Invalid test_set_size.'
+    assert (args.test_set_size < dataset_size), 'Invalid test_set_size.'
 
-print('Generate train_imgs.npy ...')
-for idx, fname in enumerate(files[test_set_size:]):
-    train_imgs[idx] = imread(fname)
-print('Done.')
+    if not exists(args.output):
+        makedirs(args.output)
 
-# RGB images, [0, 255], unsigned 8-bit integer format
-print('Save "train_imgs" ...')
-np.save(file=train_rgb_path , arr=train_imgs , allow_pickle=False)
-print('Done.')
+    shuffle(files)
 
-test_imgs = np.empty(shape=(test_set_size, 128, 128, 3), dtype=np.uint8)
+    train_imgs = np.empty(shape=(training_set_size, 128, 128, 3), dtype=np.uint8)
 
-print('Generate test_imgs.npy ...')
-for idx, fname in enumerate(files[:test_set_size]):
-    test_imgs[idx] = imread(fname)
-print('Done.')
+    print('Generate \'train.npy\' ...')
+    for idx, fname in enumerate(files[args.test_set_size:]):
+        train_imgs[idx] = imread(fname)
+    print('Done.')
 
-# RGB images, [0, 255], unsigned 8-bit integer format
-print('Save "test_imgs" ...')
-np.save(file=test_rgb_path , arr=test_imgs , allow_pickle=False)
-print('Done.')
+    print('Save \'train.npy\' ...')
+    np.save(file=train_path , arr=train_imgs , allow_pickle=False)
+    print('Done.')
+
+    test_imgs = np.empty(shape=(args.test_set_size, 128, 128, 3), dtype=np.uint8)
+
+    print('Generate \'test.npy\' ...')
+    for idx, fname in enumerate(files[:args.test_set_size]):
+        test_imgs[idx] = imread(fname)
+    print('Done.')
+
+    print('Save \'test.npy\' ...')
+    np.save(file=test_path , arr=test_imgs , allow_pickle=False)
+    print('Done.\nRemoving temporary dataset files ...')
+
+    rmtree(args.input)
+    print('Done.')
 
