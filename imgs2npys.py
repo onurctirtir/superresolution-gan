@@ -1,12 +1,4 @@
-from glob import glob
-from skimage.io import imread
-from random import shuffle
-from os.path import exists
-from os import makedirs
-from shutil import rmtree
-
 import argparse
-import numpy as np
 
 parser = argparse.ArgumentParser()
 add_arg = parser.add_argument
@@ -19,6 +11,15 @@ add_arg('--test-set-size', default=500, type=int, \
         help='Number of images to be reserved for test set.')
 
 args = parser.parse_args()
+
+from glob import glob
+from skimage.io import imread
+from random import shuffle
+from os.path import exists
+from os import makedirs
+from shutil import rmtree
+
+import numpy as np
 
 if __name__ == '__main__':
     train_path = args.output + 'train.npy'

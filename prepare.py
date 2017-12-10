@@ -1,10 +1,3 @@
-from scipy.io import loadmat
-from scipy.misc import imresize
-from skimage.io import imread, imsave
-from os.path import exists
-from os import makedirs
-from shutil import rmtree
-
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -16,6 +9,13 @@ add_arg('--output', default='imgs/', type=str, \
         help='Cropped images will be stored here.')
 
 args = parser.parse_args()
+
+from scipy.io import loadmat
+from scipy.misc import imresize
+from skimage.io import imread, imsave
+from os.path import exists
+from os import makedirs
+from shutil import rmtree
 
 if __name__ == '__main__':
     print('Running  ...')

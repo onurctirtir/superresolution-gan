@@ -113,9 +113,9 @@ def discriminator(images, is_training=True, reuse=False):
         conv4 = conv2d(conv3, output_dim=1, kernel=3, stride=2, name='d_conv4')
         conv4 = batch_norm(conv4, is_training=is_training, name='d_conv4_bn')
         conv4 = lrelu(conv4)
-        #32 x 32 x 1
+        #16 x 16 x 1
 
-        fc = tf.reshape(conv4, [-1, 32 * 32 * 1])
+        fc = tf.reshape(conv4, [-1, 16 * 16 * 1])
         fc = linear(fc, output_size=1, name='d_fc')
     
     return fc
@@ -152,7 +152,7 @@ class BatchGenerator:
         self.dataset_size = dataset_size
 
         assert (self.dataset_size > 0)               , 'Dataset is empty.'
-        assert (self.dataset_size => self.batch_size), 'Invalid bathc_size.'
+        assert (self.dataset_size >= self.batch_size), 'Invalid bathc_size.'
         assert (self.batch_size > 0)                 , 'Invalid bathc_size.'
 
         self.last_idx = -1
@@ -175,5 +175,5 @@ class BatchGenerator:
             start = self.last_idx + 1
             self.last_idx = self.dataset_size - 1
 
-            return self.idxs[start, self.last_idx + 1]
+            return self.idxs[start: self.last_idx + 1]
 

@@ -1,18 +1,3 @@
-# Eliminate warnings
-from os import environ
-environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
-from numpy import array, load
-from os import makedirs
-from os.path import exists
-from scipy.misc import imresize
-
-from commons import generator
-from commons import costs_and_vars
-
-from commons import BatchGenerator
-
-import tensorflow as tf
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -39,6 +24,19 @@ add_arg('--continues' , default=0               , type=int  , \
         If set to 0, a new model with specified name will be generated.')
 
 args = parser.parse_args()
+
+from numpy import array, load
+from os import makedirs
+from os.path import exists
+from scipy.misc import imresize
+
+from commons import discriminator
+from commons import generator
+from commons import costs_and_vars
+
+from commons import BatchGenerator
+
+import tensorflow as tf
 
 class Trainer:
     def __init__(self): 

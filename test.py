@@ -1,18 +1,3 @@
-# Eliminate warnings
-from os import environ
-environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
-from numpy import load, concatenate
-from os import makedirs
-from scipy.misc import imsave, imresize
-from time import strftime
-
-from commons import generator
-from commons import costs_and_vars
-
-from commons import BatchGenerator
-
-import tensorflow as tf
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -27,6 +12,19 @@ add_arg('--npy-path'  , default='data/test.npy', type=str, \
 
 args = parser.parse_args()
 
+from numpy import array, load, concatenate
+from os import makedirs
+from scipy.misc import imsave, imresize
+from time import strftime
+
+from commons import discriminator
+from commons import generator
+from commons import costs_and_vars
+
+from commons import BatchGenerator
+
+import tensorflow as tf
+
 class Tester:
     def __init__(self): 
         print('Importing test set ...')
@@ -36,10 +34,10 @@ class Tester:
         self.batch_size    = args.batch_size
         self.model         = args.model
         self.dataset_size  = self.dataset.shape[0]
-        self.out_path      = '/'.join(['test_out_imgs', strftime('%Y%m%d-%H%M%S']))
+        self.out_path = '/'.join(['test_out_imgs', strftime('%Y%m%d-%H%M%S')])
 
     def test(self):
-        rgb_x   = tf.placeholder(tf.float32, [None, 128, 128, 3])
+        big_x   = tf.placeholder(tf.float32, [None, 128, 128, 3])
         sml_x   = tf.placeholder(tf.float32, [None,  64,  64, 3])
         gener_x = generator(sml_x, is_training=False, reuse=False)
 
@@ -91,7 +89,7 @@ class Tester:
                 start += self.batch_size
 
                 print('%d/%d saved successfully: Generative cost=%.9f, Discriminative cost=%.9f' % \
-                        (min(self.dataset_size - start, self.batch_size), self.dataet_size, gc, dc))
+                        (min(start, self.dataset_size), self.dataset_size, gc, dc))
 
 if __name__ == '__main__':
     tester = Tester()
