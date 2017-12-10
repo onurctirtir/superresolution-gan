@@ -41,10 +41,11 @@ which creates actual training and test sets stored in numpy arrays.
 To train a model, run:
 
 ```
-python3.5 train.py --model=new_model -save-every=1
+python3.5 train.py --model=new_model --save-every=1
 ```
 
-This script will train the model and save it under the ```model/```  directory.
+This script will train the model ```new_mode``` and save it under the ```model/```  directory.
+It also saves model at the end of each epoch ```(--save-every=1)```.
 
 To test a trained model, run:
 
