@@ -1,5 +1,6 @@
 # superresolution-gan
 A DCGAN implementation in Tensorflow for super-resolution of 64 x 64 RGB images to 128 x 128 ones.
+Related inspiring paper : [Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network](https://arxiv.org/abs/1609.04802)
 
 # Notes on dataset
 
